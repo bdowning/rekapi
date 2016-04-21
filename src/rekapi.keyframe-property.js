@@ -28,8 +28,6 @@ import _ from 'underscore';
     this.easing = opt_easing || DEFAULT_EASING;
     this.nextProperty = null;
 
-    this.regenerateTweening();
-
     return this;
   };
   var KeyframeProperty = Rekapi.KeyframeProperty;
@@ -43,7 +41,7 @@ import _ from 'underscore';
       this.retweenInterpolator =
         Retween.createInterpolator(this.retweenState, this.retweenEasing);
     }
-  }
+  };
 
   /**
    * Modify this `{{#crossLink "Rekapi.KeyframeProperty"}}{{/crossLink}}`.
@@ -65,7 +63,7 @@ import _ from 'underscore';
 
     _.extend(this, modifiedProperties);
 
-    this.regenerateTweening();
+    this.retweenState = null;
   };
 
   /**
@@ -93,6 +91,14 @@ import _ from 'underscore';
     if (typeof this.value === 'boolean') {
       value = this.value;
     } else if (nextProperty && this.name !== 'function') {
+      if (!this.retweenState) {
+        this.regenerateTweening();
+      }
+      if (!nextProperty.retweenState) {
+        nextProperty.regenerateTweening();
+        this.actor._startRetweening(nextProperty.nextProperty);
+      }
+
       correctedMillisecond =
       Math.min(correctedMillisecond, nextProperty.millisecond);
 

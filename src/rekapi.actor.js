@@ -1025,6 +1025,31 @@ import _ from 'underscore';
     return this;
   };
 
+  Actor.prototype._startRetweening = function (prop) {
+    if (!prop) {
+      return;
+    }
+    if (!this._retweenTasks) {
+      this._retweenTasks = { };
+    }
+    var tasks = this._retweenTasks;
+    var name = prop.name;
+    if (tasks[name]) {
+      clearTimeout(tasks[name]);
+      tasks[name] = null;
+    }
+    var self = this;
+    var retween = function (prop) {
+      if (!prop || prop._retweenState) {
+        tasks[name] = null;
+        return;
+      }
+      prop.regenerateTweening();
+      tasks[name] = setTimeout(function () { retween(prop.nextProperty); }, 0);
+    }
+    tasks[name] = setTimeout(function () { retween(prop); }, 0);
+  }
+
   /*!
    * @method _resetFnKeyframesFromMillisecond
    * @param {number} millisecond
