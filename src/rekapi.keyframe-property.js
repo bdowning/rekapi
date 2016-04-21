@@ -1,10 +1,8 @@
 import { fireEvent } from './rekapi.utils';
 import Rekapi from './rekapi.core';
 import _ from 'underscore';
-import Tweenable from 'shifty';
 
   var DEFAULT_EASING = 'linear';
-  var interpolate = Tweenable.interpolate;
 
   /**
    * Represents an individual component of an actor's keyframe state.  In most
@@ -30,9 +28,22 @@ import Tweenable from 'shifty';
     this.easing = opt_easing || DEFAULT_EASING;
     this.nextProperty = null;
 
+    this.regenerateTweening();
+
     return this;
   };
   var KeyframeProperty = Rekapi.KeyframeProperty;
+
+  KeyframeProperty.prototype.regenerateTweening = function () {
+    if (this.name !== 'function') {
+      var out = Rekapi._retweenPreprocessor({ v: this.value }, { v: this.easing });
+      this.retweenState = out[0];
+      this.retweenEasing = out[1];
+      this.retweenDecode = out[2];
+      this.retweenInterpolator =
+        Retween.createInterpolator(this.retweenState, this.retweenEasing);
+    }
+  }
 
   /**
    * Modify this `{{#crossLink "Rekapi.KeyframeProperty"}}{{/crossLink}}`.
@@ -53,6 +64,8 @@ import Tweenable from 'shifty';
     }, this);
 
     _.extend(this, modifiedProperties);
+
+    this.regenerateTweening();
   };
 
   /**
@@ -73,27 +86,27 @@ import Tweenable from 'shifty';
    * @return {number}
    */
   KeyframeProperty.prototype.getValueAt = function (millisecond) {
-    var fromObj = {};
-    var toObj = {};
     var value;
     var nextProperty = this.nextProperty;
     var correctedMillisecond = Math.max(millisecond, this.millisecond);
 
     if (typeof this.value === 'boolean') {
       value = this.value;
-    } else if (nextProperty) {
+    } else if (nextProperty && this.name !== 'function') {
       correctedMillisecond =
       Math.min(correctedMillisecond, nextProperty.millisecond);
-
-      fromObj[this.name] = this.value;
-      toObj[this.name] = nextProperty.value;
 
       var delta = nextProperty.millisecond - this.millisecond;
       var interpolatedPosition =
       (correctedMillisecond - this.millisecond) / delta;
 
-      value = interpolate(fromObj, toObj, interpolatedPosition,
-          nextProperty.easing)[this.name];
+      var interpolatedState = nextProperty.retweenInterpolator(
+        this.retweenState,
+        nextProperty.retweenState,
+        interpolatedPosition
+      );
+
+      value = this.retweenDecode(interpolatedState).v;
     } else {
       value = this.value;
     }
