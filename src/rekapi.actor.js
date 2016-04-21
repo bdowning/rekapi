@@ -715,6 +715,11 @@ rekapiModules.push(function (context) {
    * `0`).  If there are no keyframes, this returns `0`.
    */
   Actor.prototype.getStart = function (opt_trackName) {
+    if (!opt_trackName && this._timelinePropertyCacheValid) {
+      return this._timelinePropertyCache[0] ?
+        this._timelinePropertyCache[0]._millisecond : 0;
+    }
+
     var starts = [];
     var propertyTracks = this._propertyTracks;
 
@@ -758,6 +763,11 @@ rekapiModules.push(function (context) {
    * keyframes, this is `0`.
    */
   Actor.prototype.getEnd = function (opt_trackName) {
+    if (!opt_trackName && this._timelinePropertyCacheValid) {
+      var last = this._timelinePropertyCache.length - 1;
+      return last >= 0 ? this._timelinePropertyCache[last]._millisecond : 0;
+    }
+
     var latest = 0;
     var tracksToInspect = this._propertyTracks;
 
