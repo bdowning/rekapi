@@ -37,14 +37,14 @@ rekapiModules.push(function (context) {
   var KeyframeProperty = Rekapi.KeyframeProperty;
 
   KeyframeProperty.prototype.regenerateTweening = function () {
-    if (this.name !== 'function') {
-      var out = Rekapi._retweenPreprocessor({ v: this.value }, { v: this.easing });
-      this.retweenState = out[0];
-      this.retweenEasing = out[1];
-      this.retweenDecode = out[2];
-      this.retweenInterpolator =
-        Retween.createInterpolator(this.retweenState, this.retweenEasing);
-    }
+    // if (this.name !== 'function') {
+    //   var out = Rekapi._retweenPreprocessor({ v: this.value }, { v: this.easing });
+    //   this.retweenState = out[0];
+    //   this.retweenEasing = out[1];
+    //   this.retweenDecode = out[2];
+    //   this.retweenInterpolator =
+    //     Retween.createInterpolator(this.retweenState, this.retweenEasing);
+    // }
   }
 
   /**

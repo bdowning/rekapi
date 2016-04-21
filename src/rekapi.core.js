@@ -338,10 +338,12 @@ var rekapiCore = function (root, _, Tweenable) {
 
   Rekapi.easingFormulas = Object.assign({ }, Retween.easingFormulas);
 
-  Rekapi._retweenPreprocessor = Retween.composePreprocessors(
-    Retween.createEasingPreprocessor(Rekapi.easingFormulas),
-    Retween.createTokenPreprocessor(),
-    Retween.createColorPreprocessor()
+  Rekapi._retweenPreprocessor = Retween.cachePreprocessor(
+    Retween.composePreprocessors(
+      Retween.createEasingPreprocessor(Rekapi.easingFormulas),
+      Retween.createTokenPreprocessor(),
+      Retween.createColorPreprocessor()
+    )
   );
 
 

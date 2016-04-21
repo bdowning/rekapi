@@ -16,14 +16,6 @@ rekapiModules.push(function (context) {
   }
 
   /*!
-   * @param {Object} obj
-   * @return {number} millisecond
-   */
-  function get_Millisecond(obj) {
-    return obj._millisecond;
-  }
-
-  /*!
    * @param {Rekapi.Actor} actor
    * @param {string} event
    * @param {any=} opt_data
@@ -41,20 +33,20 @@ rekapiModules.push(function (context) {
    * @return {Object|undefined} undefined if there is no property cache for
    * the millisecond (this should never happen).
    */
-  function getPropertyCacheEntryForMillisecond (actor, millisecond) {
+  function getPropertyCacheIndexForMillisecond (actor, millisecond) {
     var cache = actor._timelinePropertyCache;
 
     // If there is only one keyframe, use that
     if (cache.length === 1) {
-      return cache[0];
+      return 0;
     }
 
-    var index = _.sortedIndex(cache, { _millisecond: millisecond }, get_Millisecond);
+    var index = _.sortedIndex(cache, { millisecond: millisecond }, getMillisecond);
 
-    if (cache[index] && cache[index]._millisecond === millisecond) {
-      return cache[index];
+    if (cache[index] && cache[index].millisecond === millisecond) {
+      return index;
     } else if (index >= 1) {
-      return cache[index - 1];
+      return index - 1;
     }
 
     return -1;
@@ -120,6 +112,7 @@ rekapiModules.push(function (context) {
    * @param {Rekapi.Actor}
    */
   function invalidatePropertyCache (actor) {
+    actor._killRetweenTask();
     actor._timelinePropertyCacheValid = false;
   }
 
@@ -141,16 +134,20 @@ rekapiModules.push(function (context) {
     var props = _.values(actor._keyframeProperties);
     props.sort(function (a, b) { return a.millisecond - b.millisecond });
 
-    var curCacheEntry = getLatestPropeties(actor, 0);
-    curCacheEntry._millisecond = 0;
+    var curCacheEntry = {
+      millisecond: 0,
+      properties: getLatestPropeties(actor, 0)
+    };
     timelinePropertyCache.push(curCacheEntry);
     _.each(props, function (property) {
-      if (property.millisecond !== curCacheEntry._millisecond) {
-        curCacheEntry = _.clone(curCacheEntry);
-        curCacheEntry._millisecond = property.millisecond;
+      if (property.millisecond !== curCacheEntry.millisecond) {
+        curCacheEntry = {
+          millisecond: property.millisecond,
+          properties: _.clone(curCacheEntry.properties)
+        };
         timelinePropertyCache.push(curCacheEntry);
       }
-      curCacheEntry[property.name] = property;
+      curCacheEntry.properties[property.name] = property;
       if (property.name === 'function') {
         actor._timelineFunctionCache.push(property);
       }
@@ -717,7 +714,7 @@ rekapiModules.push(function (context) {
   Actor.prototype.getStart = function (opt_trackName) {
     if (!opt_trackName && this._timelinePropertyCacheValid) {
       return this._timelinePropertyCache[0] ?
-        this._timelinePropertyCache[0]._millisecond : 0;
+        this._timelinePropertyCache[0].millisecond : 0;
     }
 
     var starts = [];
@@ -765,7 +762,7 @@ rekapiModules.push(function (context) {
   Actor.prototype.getEnd = function (opt_trackName) {
     if (!opt_trackName && this._timelinePropertyCacheValid) {
       var last = this._timelinePropertyCache.length - 1;
-      return last >= 0 ? this._timelinePropertyCache[last]._millisecond : 0;
+      return last >= 0 ? this._timelinePropertyCache[last].millisecond : 0;
     }
 
     var latest = 0;
@@ -924,7 +921,52 @@ rekapiModules.push(function (context) {
     }
 
     return this;
-  }
+  };
+
+  Actor.prototype._killRetweenTask = function () {
+    if (this._retweenTask) {
+      clearTimeout(this._retweenTask);
+      this._retweenTask = undefined;
+    }
+  };
+
+  Actor.prototype._ensureCacheRetween = function (index) {
+    if (!this._getNextCacheEntry) {
+      var getNextCacheEntry = (function (index, skipTask) {
+        var entry = this._timelinePropertyCache[index];
+        if (!entry || entry.retween) {
+          this._retweenTask = undefined;
+          return;
+        }
+        var out = Rekapi._retweenPreprocessor(
+          _.mapValues(entry.properties, function (p) { return p.value }),
+          _.mapValues(entry.properties, function (p) { return p.easing })
+        );
+        entry.retween = {
+          state: out[0],
+          easing: out[1],
+          decode: out[2]
+        };
+        entry.retween.interpolator = Retween.createInterpolator(
+          entry.retween.state,
+          entry.retween.easing
+        );
+        if (!skipTask) {
+          this._retweenTask = setTimeout(function () { getNextCacheEntry(index + 1) }, 0);
+        }
+      }).bind(this);
+      this._getNextCacheEntry = getNextCacheEntry;
+    }
+
+    var cache = this._timelinePropertyCache;
+    if (!cache[index].retween || (cache[index + 1] && !cache[index + 1].retween)) {
+      this._killRetweenTask();
+      this._getNextCacheEntry(index, true);
+      this._getNextCacheEntry(index + 1);
+    }
+    
+    return index;
+  };
 
   /*!
    * Calculate and set the actor's position at `millisecond` in the animation.
@@ -937,20 +979,22 @@ rekapiModules.push(function (context) {
   Actor.prototype._updateState = function (millisecond, opt_doResetLaterFnKeyframes) {
     var startMs = this.getStart();
     var endMs = this.getEnd();
-    var interpolatedObject = {};
+    var interpolatedObject;
 
     millisecond = Math.min(endMs, millisecond);
 
     ensurePropertyCacheValid(this);
-    var propertiesToInterpolate =
-        getPropertyCacheEntryForMillisecond(this, millisecond);
+    var index = getPropertyCacheIndexForMillisecond(this, millisecond);
+    this._ensureCacheRetween(index);
+    var entry = this._timelinePropertyCache[index];
+    var nextEntry = this._timelinePropertyCache[index + 1];
+    var properties = entry.properties;
 
     // All actors are active at time 0 unless otherwise specified;
     // make sure a future time deactivation doesn't deactive the actor
     // by default.
-    if (propertiesToInterpolate._active
-        && millisecond >= propertiesToInterpolate._active.millisecond) {
-      this.wasActive = propertiesToInterpolate._active.getValueAt(millisecond);
+    if (properties._active && millisecond >= properties._active.millisecond) {
+      this.wasActive = properties._active.getValueAt(millisecond);
       if (!this.wasActive)
         return this;
     } else {
@@ -960,38 +1004,46 @@ rekapiModules.push(function (context) {
     if (startMs === endMs) {
 
       // If there is only one keyframe, use that for the state of the actor
-      _.each(propertiesToInterpolate, function (keyframeProperty, propName) {
-        if (propName !== '_millisecond') {
-          if (keyframeProperty.shouldInvokeForMillisecond(millisecond)) {
-            keyframeProperty.invoke();
-            keyframeProperty.hasFired = false;
-            return;
-          }
-
-          interpolatedObject[propName] = keyframeProperty.value;
+      _.each(properties, function (keyframeProperty, propName) {
+        if (keyframeProperty.shouldInvokeForMillisecond(millisecond)) {
+          keyframeProperty.invoke();
+          keyframeProperty.hasFired = false;
+          return;
         }
       }, this);
 
+      interpolatedObject = entry.retween.decode(entry.retween.state);
+
     } else {
 
-      _.each(propertiesToInterpolate, function (keyframeProperty, propName) {
-        if (propName !== '_millisecond') {
-          if (this._beforeKeyframePropertyInterpolate !== noop) {
-            this._beforeKeyframePropertyInterpolate(keyframeProperty);
-          }
+      _.each(properties, function (keyframeProperty, propName) {
+        if (this._beforeKeyframePropertyInterpolate !== noop) {
+          this._beforeKeyframePropertyInterpolate(keyframeProperty);
+        }
 
-          if (keyframeProperty.shouldInvokeForMillisecond(millisecond)) {
-            keyframeProperty.invoke();
-            return;
-          }
+        if (keyframeProperty.shouldInvokeForMillisecond(millisecond)) {
+          keyframeProperty.invoke();
+          return;
+        }
+      }, this);
 
-          interpolatedObject[propName] =
-          keyframeProperty.getValueAt(millisecond);
+      if (nextEntry) {
+        const delta = nextEntry.millisecond - entry.millisecond;
+        const position = (millisecond - entry.millisecond) / delta;
+        const state = nextEntry.retween.interpolator(
+            entry.retween.state,
+            nextEntry.retween.state,
+            position
+          );
+        interpolatedObject = nextEntry.retween.decode(state);
+      } else {
+        interpolatedObject = entry.retween.decode(entry.retween.state);
+      }
 
-          if (this._afterKeyframePropertyInterpolate !== noop) {
-            this._afterKeyframePropertyInterpolate(
-              keyframeProperty, interpolatedObject);
-          }
+      _.each(properties, function (keyframeProperty, propName) {
+        if (this._afterKeyframePropertyInterpolate !== noop) {
+          this._afterKeyframePropertyInterpolate(
+            keyframeProperty, interpolatedObject);
         }
       }, this);
     }
