@@ -574,12 +574,14 @@ import _ from 'underscore';
     fireEvent(this, 'beforeUpdate', _);
 
     // Update and render each of the actors
-    _.each(this._actors, function (actor) {
+    var actors = this._actors;
+    for (var id in actors) {
+      var actor = actors[id];
       actor._updateState(opt_millisecond, opt_doResetLaterFnKeyframes);
       if (!skipRender && actor.wasActive && typeof actor.render === 'function') {
         actor.render(actor.context, actor.get());
       }
-    });
+    }
 
     this._lastUpdatedMillisecond = opt_millisecond;
     fireEvent(this, 'afterUpdate', _);

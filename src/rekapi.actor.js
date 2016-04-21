@@ -41,13 +41,22 @@ import _ from 'underscore';
    */
   function getPropertyCacheEntryForMillisecond (actor, millisecond) {
     var cache = actor._timelinePropertyCache;
+    var cacheMs = actor._timelinePropertyCacheMilliseconds;
 
-    var index = _.sortedIndex(cache, { _millisecond: millisecond }, get_Millisecond);
+    var low = 0, high = cacheMs.length, mid;
+    while (low <= high) {
+      mid = Math.floor((high + low) / 2);
+      if (cacheMs[mid] < millisecond) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
 
-    if (cache[index] && cache[index]._millisecond === millisecond) {
-      return cache[index];
-    } else if (index >= 1) {
-      return cache[index - 1];
+    if (cacheMs[low] === millisecond) {
+      return cache[low];
+    } else if (low >= 1) {
+      return cache[low - 1];
     } else {
       return cache[0];
     }
@@ -137,9 +146,11 @@ import _ from 'underscore';
     var curCacheEntry = getLatestProperties(actor, 0);
     curCacheEntry._millisecond = 0;
     timelinePropertyCache.push(curCacheEntry);
-    _.each(props, function (property) {
-      if (property.millisecond !== curCacheEntry._millisecond) {
-        curCacheEntry = _.clone(curCacheEntry);
+    var numProps = props.length;
+    for (var i = 0; i < numProps; ++i) {
+      var property = props[i];
+      if (property.millisecond > curCacheEntry._millisecond) {
+        curCacheEntry = Object.assign({ }, curCacheEntry);
         curCacheEntry._millisecond = property.millisecond;
         timelinePropertyCache.push(curCacheEntry);
       }
@@ -147,7 +158,13 @@ import _ from 'underscore';
       if (property.name === 'function') {
         actor._timelineFunctionCache.push(property);
       }
-    });
+    }
+
+    actor._timelinePropertyCacheMilliseconds =
+      new Float32Array(timelinePropertyCache.length);
+    for (var i = 0; i < timelinePropertyCache.length; ++i) {
+      actor._timelinePropertyCacheMilliseconds[i] = timelinePropertyCache[i]._millisecond;
+    }
 
     actor._timelinePropertyCacheValid = true;
   }
@@ -955,32 +972,30 @@ import _ from 'underscore';
    * @chainable
    */
   Actor.prototype._updateState = function (millisecond, opt_doResetLaterFnKeyframes) {
-    var startMs = this.getStart();
-    var endMs = this.getEnd();
     var interpolatedObject = {};
 
-    millisecond = Math.min(endMs, millisecond);
-
     ensurePropertyCacheValid(this);
-    var propertiesToInterpolate =
-        getPropertyCacheEntryForMillisecond(this, millisecond);
+    var cacheMs = this._timelinePropertyCacheMilliseconds;
+    millisecond = Math.min(cacheMs[cacheMs.length - 1], millisecond);
+    var props = getPropertyCacheEntryForMillisecond(this, millisecond);
+    var i;
 
     // All actors are active at time 0 unless otherwise specified;
     // make sure a future time deactivation doesn't deactive the actor
     // by default.
-    if (propertiesToInterpolate._active
-        && millisecond >= propertiesToInterpolate._active.millisecond) {
-      this.wasActive = propertiesToInterpolate._active.getValueAt(millisecond);
+    if (props._active && millisecond >= props._active.millisecond) {
+      this.wasActive = props._active.getValueAt(millisecond);
       if (!this.wasActive)
         return this;
     } else {
       this.wasActive = true;
     }
 
-    if (startMs === endMs) {
+    if (cacheMs.length === 1) {
 
       // If there is only one keyframe, use that for the state of the actor
-      _.each(propertiesToInterpolate, function (keyframeProperty, propName) {
+      for (var propName in props) {
+        var keyframeProperty = props[propName];
         if (propName !== '_millisecond') {
           if (keyframeProperty.shouldInvokeForMillisecond(millisecond)) {
             keyframeProperty.invoke();
@@ -990,11 +1005,12 @@ import _ from 'underscore';
 
           interpolatedObject[propName] = keyframeProperty.value;
         }
-      }, this);
+      }
 
     } else {
 
-      _.each(propertiesToInterpolate, function (keyframeProperty, propName) {
+      for (var propName in props) {
+        var keyframeProperty = props[propName];
         if (propName !== '_millisecond') {
           if (this._beforeKeyframePropertyInterpolate !== noop) {
             this._beforeKeyframePropertyInterpolate(keyframeProperty);
@@ -1013,7 +1029,7 @@ import _ from 'underscore';
               keyframeProperty, interpolatedObject);
           }
         }
-      }, this);
+      }
     }
 
     this.set(interpolatedObject);
