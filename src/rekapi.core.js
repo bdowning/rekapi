@@ -336,6 +336,15 @@ var rekapiCore = function (root, _, Tweenable) {
    */
   Rekapi._rendererInitHook = {};
 
+  Rekapi.easingFormulas = Object.assign({ }, Retween.easingFormulas);
+
+  Rekapi._retweenPreprocessor = Retween.composePreprocessors(
+    Retween.createEasingPreprocessor(Rekapi.easingFormulas),
+    Retween.createTokenPreprocessor(),
+    Retween.createColorPreprocessor()
+  );
+
+
   /**
    * Add an actor to the animation.  Decorates the added `actor` with a
    * reference to this `Rekapi` instance as `this.rekapi`.
