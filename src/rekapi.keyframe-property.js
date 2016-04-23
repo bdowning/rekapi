@@ -32,8 +32,8 @@ import _ from 'underscore';
   };
   var KeyframeProperty = Rekapi.KeyframeProperty;
 
-  KeyframeProperty.prototype.regenerateTweening = function () {
-    if (this.name !== 'function') {
+  KeyframeProperty.prototype.genRetween = function () {
+    if (!this.retweenState) {
       var out = Rekapi._retweenPreprocessor({ v: this.value }, { v: this.easing });
       this.retweenState = out[0];
       this.retweenEasing = out[1];
@@ -41,6 +41,21 @@ import _ from 'underscore';
       this.retweenInterpolator =
         Retween.createInterpolator(this.retweenState, this.retweenEasing);
     }
+  }
+
+  KeyframeProperty.prototype.regenerateTweening = function () {
+    if (!this.nextProperty ||
+        this.name === 'function' ||
+        typeof this.value === 'boolean' ||
+        this.value === this.nextProperty.value ||
+        this.nextProperty.easing === 'step') {
+      this.skipTween = true;
+    } else {
+      this.skipTween = false;
+      this.genRetween();
+      this.nextProperty.genRetween();
+    }
+    this.tweenValid = true;
   };
 
   /**
@@ -63,6 +78,7 @@ import _ from 'underscore';
 
     _.extend(this, modifiedProperties);
 
+    this.tweenValid = null;
     this.retweenState = null;
   };
 
@@ -88,17 +104,16 @@ import _ from 'underscore';
     var nextProperty = this.nextProperty;
     var correctedMillisecond = Math.max(millisecond, this.millisecond);
 
-    if (typeof this.value === 'boolean') {
-      value = this.value;
-    } else if (nextProperty && this.name !== 'function') {
-      if (!this.retweenState) {
-        this.regenerateTweening();
+    if (!this.tweenValid) {
+      this.regenerateTweening();
+      if (this.actor) {
+        this.actor._startTweening(this.nextProperty);
       }
-      if (!nextProperty.retweenState) {
-        nextProperty.regenerateTweening();
-        this.actor._startRetweening(nextProperty.nextProperty);
-      }
+    }
 
+    if (this.skipTween) {
+      value = this.value;
+    } else {
       correctedMillisecond =
       Math.min(correctedMillisecond, nextProperty.millisecond);
 
@@ -113,8 +128,6 @@ import _ from 'underscore';
       );
 
       value = this.retweenDecode(interpolatedState).v;
-    } else {
-      value = this.value;
     }
 
     return value;

@@ -1041,7 +1041,7 @@ import _ from 'underscore';
     return this;
   };
 
-  Actor.prototype._startRetweening = function (prop) {
+  Actor.prototype._startTweening = function (prop) {
     if (!prop) {
       return;
     }
@@ -1056,7 +1056,7 @@ import _ from 'underscore';
     }
     var self = this;
     var retween = function (prop) {
-      if (!prop || prop._retweenState) {
+      if (!prop || prop.tweenValid) {
         tasks[name] = null;
         return;
       }
