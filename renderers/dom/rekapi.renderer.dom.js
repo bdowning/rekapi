@@ -218,17 +218,17 @@ import _ from 'underscore';
    * @param {Rekapi.KeyframeProperty} keyframeProperty
    */
   function actorBeforeInterpolate (keyframeProperty) {
-    if (keyframeProperty.name !== 'transform') {
-      return;
-    }
+    // if (keyframeProperty.name !== 'transform') {
+    //   return;
+    // }
 
-    var value = keyframeProperty.value;
-    var nextProp = keyframeProperty.nextProperty;
+    // var value = keyframeProperty.value;
+    // var nextProp = keyframeProperty.nextProperty;
 
-    if (nextProp && value.match(/3d\(/g)) {
-      keyframeProperty.value = value.replace(/3d\(/g, '__THREED__');
-      nextProp.value = nextProp.value.replace(/3d\(/g, '__THREED__');
-    }
+    // if (nextProp && value.match(/3d\(/g)) {
+    //   keyframeProperty.value = value.replace(/3d\(/g, '__THREED__');
+    //   nextProp.value = nextProp.value.replace(/3d\(/g, '__THREED__');
+    // }
   }
 
   /*!
@@ -236,20 +236,20 @@ import _ from 'underscore';
    * @param {Object} interpolatedObject
    */
   function actorAfterInterpolate (keyframeProperty, interpolatedObject) {
-    if (keyframeProperty.name !== 'transform') {
-      return;
-    }
+    // if (keyframeProperty.name !== 'transform') {
+    //   return;
+    // }
 
-    var value = keyframeProperty.value;
-    var nextProp = keyframeProperty.nextProperty;
+    // var value = keyframeProperty.value;
+    // var nextProp = keyframeProperty.nextProperty;
 
-    if (nextProp && value.match(/__THREED__/g)) {
-      keyframeProperty.value = value.replace(/__THREED__/g, '3d(');
-      nextProp.value = nextProp.value.replace(/__THREED__/g, '3d(');
-      var keyPropName = keyframeProperty.name;
-      interpolatedObject[keyPropName] =
-          interpolatedObject[keyPropName].replace(/__THREED__/g, '3d(');
-    }
+    // if (nextProp && value.match(/__THREED__/g)) {
+    //   keyframeProperty.value = value.replace(/__THREED__/g, '3d(');
+    //   nextProp.value = nextProp.value.replace(/__THREED__/g, '3d(');
+    //   var keyPropName = keyframeProperty.name;
+    //   interpolatedObject[keyPropName] =
+    //       interpolatedObject[keyPropName].replace(/__THREED__/g, '3d(');
+    // }
   }
 
   /*!
