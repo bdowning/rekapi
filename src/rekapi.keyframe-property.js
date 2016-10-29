@@ -1,11 +1,9 @@
-rekapiModules.push(function (context) {
-
-  'use strict';
+import { fireEvent } from './rekapi.utils';
+import Rekapi from './rekapi.core';
+import _ from 'underscore';
+import Tweenable from 'shifty';
 
   var DEFAULT_EASING = 'linear';
-  var Rekapi = context.Rekapi;
-  var Tweenable = Rekapi.Tweenable;
-  var _ = Rekapi._;
   var interpolate = Tweenable.interpolate;
 
   /**
@@ -181,5 +179,3 @@ rekapiModules.push(function (context) {
     this.hasFired = true;
     return returnValue;
   };
-
-});

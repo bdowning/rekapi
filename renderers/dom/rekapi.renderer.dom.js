@@ -1,10 +1,9 @@
-rekapiModules.push(function (context) {
+import { REKAPI_DEBUG, fireEvent } from '../../src/rekapi.utils';
+import Rekapi from '../../src/rekapi.core';
+import Tweenable from 'shifty';
+import _ from 'underscore';
 
-  'use strict';
-
-  var Rekapi = context.Rekapi;
-  var _ = Rekapi._;
-  var now = Rekapi.Tweenable.now;
+  var now = Tweenable.now;
   var vendorTransforms = [
     'transform'
     ,'webkitTransform'
@@ -1398,4 +1397,3 @@ rekapiModules.push(function (context) {
       ,'transformFunctions': transformFunctions
     };
   }
-});

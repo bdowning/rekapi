@@ -1,9 +1,6 @@
-rekapiModules.push(function (context) {
-
-  'use strict';
-
-  var Rekapi = context.Rekapi;
-  var _ = Rekapi._;
+import { fireEvent } from '../../src/rekapi.utils';
+import Rekapi from '../../src/rekapi.core';
+import _ from 'underscore';
 
   // PRIVATE UTILITY FUNCTIONS
   //
@@ -289,5 +286,3 @@ rekapiModules.push(function (context) {
     this._renderOrderSorter = null;
     return this.rekapi;
   };
-
-});

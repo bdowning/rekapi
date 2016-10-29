@@ -1,11 +1,9 @@
-rekapiModules.push(function (context) {
-
-  'use strict';
+import { invalidateAnimationLength, fireEvent, noop } from './rekapi.utils';
+import Rekapi from './rekapi.core';
+import Tweenable from 'shifty';
+import _ from 'underscore';
 
   var DEFAULT_EASING = 'linear';
-  var Rekapi = context.Rekapi;
-  var Tweenable = Rekapi.Tweenable;
-  var _ = Rekapi._;
 
   /*!
    * @param {Object} obj
@@ -1088,5 +1086,3 @@ rekapiModules.push(function (context) {
       }, this);
     }, this);
   };
-
-});

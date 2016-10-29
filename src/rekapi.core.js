@@ -1,45 +1,6 @@
-// REKAPI-GLOBALS
-// These are global in development, but get wrapped in a closure at build-time.
-
-// A hack for UglifyJS defines.  Gets removes in the build process.
-if (typeof REKAPI_DEBUG === 'undefined') {
-  REKAPI_DEBUG = true;
-}
-
-var rekapiModules = [];
-
-/*!
- * Fire an event bound to a Rekapi.
- * @param {Rekapi} rekapi
- * @param {string} eventName
- * @param {Underscore} _ A reference to the scoped Underscore/Lo-Dash
- * dependency
- * @param {Object=} opt_data Optional event-specific data
- */
-function fireEvent (rekapi, eventName, _, opt_data) {
-  _.each(rekapi._events[eventName], function (handler) {
-    handler(rekapi, opt_data);
-  });
-}
-
-/*!
- * @param {Rekapi} rekapi
- * @param {Underscore} _
- */
-function invalidateAnimationLength (rekapi) {
-  rekapi._animationLengthValid = false;
-}
-
-/*!
- * Does nothing.  Absolutely nothing at all.
- */
-function noop () {
-  // NOOP!
-}
-
-var rekapiCore = function (root, _, Tweenable) {
-
-  'use strict';
+import { REKAPI_DEBUG, invalidateAnimationLength, fireEvent } from './rekapi.utils';
+import Tweenable from 'shifty';
+import _ from 'underscore';
 
   // CONSTANTS
   //
@@ -324,11 +285,6 @@ var rekapiCore = function (root, _, Tweenable) {
 
     return this;
   }
-
-  // Decorate the Rekapi object with the dependencies so that other modules can
-  // access them.
-  Rekapi.Tweenable = Tweenable;
-  Rekapi._ = _;
 
   /*!
    * @type {Object.<function>} Contains the context init function to be called
@@ -876,6 +832,4 @@ var rekapiCore = function (root, _, Tweenable) {
     };
   }
 
-  root.Rekapi = Rekapi;
-
-};
+export default Rekapi;
