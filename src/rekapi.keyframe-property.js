@@ -1,6 +1,7 @@
 import { fireEvent } from './rekapi.utils';
 import Rekapi from './rekapi.core';
 import _ from 'underscore';
+import * as Retween from 'retween';
 
   var DEFAULT_EASING = 'linear';
 

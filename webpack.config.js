@@ -7,7 +7,7 @@ module.exports = {
         filename: 'rekapi.js'
     },
     externals: {
-        shifty: 'Tweenable',
+        retween: 'Retween',
         underscore: '_'
     },
     module: {

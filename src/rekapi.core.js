@@ -1,5 +1,6 @@
 import { REKAPI_DEBUG, invalidateAnimationLength, fireEvent, now } from './rekapi.utils';
 import _ from 'underscore';
+import * as Retween from 'retween';
 
   // CONSTANTS
   //
