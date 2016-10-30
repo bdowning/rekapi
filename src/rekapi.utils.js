@@ -4,6 +4,11 @@
 // A hack for UglifyJS defines.  Gets removes in the build process.
 export const REKAPI_DEBUG = true;
 
+const _now = Date.now
+  ? Date.now
+  : function () {return +new Date();};
+export const now = typeof SHIFTY_DEBUG_NOW !== 'undefined' ? SHIFTY_DEBUG_NOW : _now;
+
 /*!
  * Fire an event bound to a Rekapi.
  * @param {Rekapi} rekapi

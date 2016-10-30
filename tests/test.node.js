@@ -2,7 +2,6 @@
 var requirejs = require('requirejs');
 requirejs.config({
   paths: {
-    shifty: "../dist/shifty.min",
     underscore: "../dist/lodash.min",
     rekapi: "../dist/rekapi"
   }

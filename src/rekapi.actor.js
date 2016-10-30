@@ -1,6 +1,5 @@
 import { invalidateAnimationLength, fireEvent, noop } from './rekapi.utils';
 import Rekapi from './rekapi.core';
-import Tweenable from 'shifty';
 import _ from 'underscore';
 
   var DEFAULT_EASING = 'linear';
@@ -225,6 +224,34 @@ import _ from 'underscore';
   }
 
   /**
+   * Creates a usable easing Object from a string, a function or another easing
+   * Object.  If `easing` is an Object, then this function clones it and fills
+   * in the missing properties with `"linear"`.
+   * @param {Object.<string|Function>} fromTweenParams
+   * @param {Object|string|Function} easing
+   * @return {Object.<string|Function>}
+   * @private
+   */
+  function composeEasingObject (fromTweenParams, easing) {
+    var composedEasing = {};
+    var typeofEasing = typeof easing;
+
+    if (typeofEasing === 'string' || typeofEasing === 'function') {
+      for (var prop in fromTweenParams) {
+        composedEasing[prop] = easing;
+      }
+    } else {
+      for (var prop in fromTweenParams) {
+        if (!composedEasing[prop]) {
+          composedEasing[prop] = easing[prop] || DEFAULT_EASING;
+        }
+      }
+    }
+
+    return composedEasing;
+  }
+
+  /**
    * An actor represents an individual component of an animation.  An animation
    * may have one or many actors.
    *
@@ -252,9 +279,6 @@ import _ from 'underscore';
 
     opt_config = opt_config || {};
 
-    // Steal the `Tweenable` constructor.
-    Tweenable.call(this);
-
     _.extend(this, {
       '_propertyTracks': {}
       ,'_timelinePropertyCache': []
@@ -274,14 +298,21 @@ import _ from 'underscore';
   };
   var Actor = Rekapi.Actor;
 
-  // Kind of a fun way to set up an inheritance chain.  `ActorMethods` prevents
-  // methods on `Actor.prototype` from polluting `Tweenable`'s prototype with
-  // `Actor` specific methods.
-  var ActorMethods = function () {};
-  ActorMethods.prototype = Tweenable.prototype;
-  Actor.prototype = new ActorMethods();
-  // But the magic doesn't stop here!  `Actor`'s constructor steals the
-  // `Tweenable` constructor.
+  /**
+   * @method get
+   * @return {Object} The current state.
+   */
+  Actor.prototype.get = function () {
+    return Object.assign({}, this._currentState);
+  };
+
+  /**
+   * @method set
+   * @param {Object} state The current state.
+   */
+  Actor.prototype.set = function (state) {
+    this._currentState = state;
+  };
 
   /**
    * Create a keyframe for the actor.  The animation timeline begins at `0`.
@@ -377,7 +408,8 @@ import _ from 'underscore';
     }
 
     opt_easing = opt_easing || DEFAULT_EASING;
-    var easing = Tweenable.composeEasingObject(state, opt_easing);
+    var easing = composeEasingObject(state, opt_easing);
+    console.log(state, opt_easing, easing);
     var newKeyframeProperty;
 
     // Create and add all of the KeyframeProperties

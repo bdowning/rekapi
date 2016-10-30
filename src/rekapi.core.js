@@ -1,5 +1,4 @@
-import { REKAPI_DEBUG, invalidateAnimationLength, fireEvent } from './rekapi.utils';
-import Tweenable from 'shifty';
+import { REKAPI_DEBUG, invalidateAnimationLength, fireEvent, now } from './rekapi.utils';
 import _ from 'underscore';
 
   // CONSTANTS
@@ -192,8 +191,6 @@ import _ from 'underscore';
   }
 
   // CORE-SPECIFIC VARS AND FUNCTIONS
-
-  var now = Tweenable.now;
 
   var playState = {
     'STOPPED': 'stopped'
@@ -514,7 +511,6 @@ import _ from 'underscore';
     // Also kill any shifty tweens that are running.
     _.each(this._actors, function (actor) {
       actor
-        .stop()
         ._resetFnKeyframesFromMillisecond(0);
     });
 
@@ -761,15 +757,15 @@ import _ from 'underscore';
     }, this);
 
     var curves = {};
-    _.chain(Tweenable.prototype.formula)
-      .filter(function (formula) {
-        return typeof formula.x1 === 'number';
-      })
-      .each(function (curve) {
-        curves[curve.displayName] =
-          _.pick(curve, 'displayName', 'x1', 'y1', 'x2', 'y2');
-      })
-      .value();
+    // _.chain(Tweenable.prototype.formula)
+    //   .filter(function (formula) {
+    //     return typeof formula.x1 === 'number';
+    //   })
+    //   .each(function (curve) {
+    //     curves[curve.displayName] =
+    //       _.pick(curve, 'displayName', 'x1', 'y1', 'x2', 'y2');
+    //   })
+    //   .value();
 
     exportData.curves = curves;
 
@@ -790,13 +786,13 @@ import _ from 'underscore';
    */
   Rekapi.prototype.importTimeline = function (rekapiData) {
     _.each(rekapiData.curves, function (curve, curveName) {
-      Tweenable.setBezierFunction(
-        curveName
-        ,curve.x1
-        ,curve.y1
-        ,curve.x2
-        ,curve.y2
-      );
+      // Tweenable.setBezierFunction(
+      //   curveName
+      //   ,curve.x1
+      //   ,curve.y1
+      //   ,curve.x2
+      //   ,curve.y2
+      // );
     });
 
     _.each(rekapiData.actors, function (actorData) {
@@ -825,7 +821,7 @@ import _ from 'underscore';
    * @static
    * @type {Array.<string>}
    */
-  Rekapi.nonCustomFormulaNames = _.keys(Tweenable.prototype.formula);
+  Rekapi.nonCustomFormulaNames = _.keys(Rekapi.easingFormulas);
 
   Rekapi.util = {};
 

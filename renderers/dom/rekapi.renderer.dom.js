@@ -1,9 +1,7 @@
-import { REKAPI_DEBUG, fireEvent } from '../../src/rekapi.utils';
+import { REKAPI_DEBUG, fireEvent, now } from '../../src/rekapi.utils';
 import Rekapi from '../../src/rekapi.core';
-import Tweenable from 'shifty';
 import _ from 'underscore';
 
-  var now = Tweenable.now;
   var vendorTransforms = [
     'transform'
     ,'webkitTransform'
