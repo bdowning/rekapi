@@ -1,5 +1,5 @@
-import { REKAPI_DEBUG, fireEvent, now } from '../../src/rekapi.utils';
-import Rekapi from '../../src/rekapi.core';
+import { REKAPI_DEBUG, fireEvent, now } from '../../rekapi.utils';
+import Rekapi from '../../rekapi.core';
 import _ from 'underscore';
 
   var vendorTransforms = [

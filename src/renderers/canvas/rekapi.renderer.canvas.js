@@ -1,5 +1,5 @@
-import { fireEvent } from '../../src/rekapi.utils';
-import Rekapi from '../../src/rekapi.core';
+import { fireEvent } from '../../rekapi.utils';
+import Rekapi from '../../rekapi.core';
 import _ from 'underscore';
 
   // PRIVATE UTILITY FUNCTIONS
